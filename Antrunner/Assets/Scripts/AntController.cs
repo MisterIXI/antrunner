@@ -4,19 +4,28 @@ using UnityEngine;
 
 public class AntController : MonoBehaviour
 {
+    public GameObject ant;
+    static int antCount = 100;
+    long lastSpawn;
     private Vector3 headPos;
     // Start is called before the first frame update
     void Start()
     {
-
+        lastSpawn = System.DateTime.Now.Ticks;
     }
 
     // Update is called once per frame
     void Update()
     {
-
+        long time = System.DateTime.Now.Ticks;
+        Debug.Log(time - lastSpawn);
+        if (time - lastSpawn > 10000000)
+        {
+            lastSpawn = time;
+            Instantiate(ant, headPos, Quaternion.identity);
+        }
+        //time.deltaTime
     }
-
     void FixedUpdate()
     {
         headPos = transform.position + transform.up * 0.3f;
@@ -26,16 +35,18 @@ public class AntController : MonoBehaviour
 
         float angle = Mathf.Atan2(mousePos.y - transform.position.y, mousePos.x - transform.position.x) * Mathf.Rad2Deg - 90f;
         //cap rotation at 15 to limit the ant's rotation
-        Debug.Log(angle + " | " + (transform.rotation.eulerAngles.z));
-        Debug.Log(Quaternion.Angle(transform.rotation, Quaternion.Euler(0, 0, angle)));
-        transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, 0, angle), 0.1f);
+        // Debug.Log(angle + " | " + (transform.rotation.eulerAngles.z));
+        // Debug.Log(Quaternion.Angle(transform.rotation, Quaternion.Euler(0, 0, angle)));
+        if (Random.value > 0.5f)
+        {
+            transform.rotation = new Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, 0, angle), 0.1f);
+        }
 
-        // transform.rotation = Quaternion.Euler(0, 0, angle + 90f);
 
         if (Vector3.Distance(mousePos, transform.position) > 0.3f)
         {
-            transform.Translate(transform.up * 1.1f, Space.World);
-            // transform.Translate(transform.right * 0.1f);
+            transform.Translate(transform.up * 0.1f, Space.World);
         }
     }
 
