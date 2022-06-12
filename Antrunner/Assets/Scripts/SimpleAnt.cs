@@ -10,7 +10,7 @@ public class SimpleAnt : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        this.ants = GameObject.Find("AntSpawner").GetComponent<AntSpawner>().ants;
+        this.ants = GameObject.Find("AntControl").GetComponent<AntSpawner>().ants;
         this.id = idHelper++;
     }
 

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class AntSpawner : MonoBehaviour
 {
-    private const float rightBounds = 137.25f;
+    private const float rightBounds = 150f;
     private const float upperBounds = 80f;
     private const int MAX_ANTS = 10000;
     public GameObject ant;
@@ -29,9 +29,7 @@ public class AntSpawner : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetButtonDown("Fire1"))
-        {
-        }
+
     }
     void FixedUpdate()
     {
