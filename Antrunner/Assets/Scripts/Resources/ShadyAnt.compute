@@ -1,0 +1,74 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#define PI 3.1415926538
+
+struct Ant
+{
+    float2 pos;
+    float rot;
+    float2 forward;
+};
+
+float rand(float2 co){
+    // if(co.x == 0.0f && co.y == 0.0f){
+    //     co.x = 1;
+    //     co.y = 1;
+    // }
+    return frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453);
+}
+
+float rightBounds;
+float upperBounds;
+RWStructuredBuffer<Ant> ants;
+
+float2 deflect(float distance, Ant ant);
+float newRotation(float2 v1);
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    Ant ant = ants[id.x];
+    // Update the ant's position
+    float distance = rand(ant.pos * ant.forward);
+    float2 oldForward = ant.forward;
+    ant.forward = deflect(distance, ant);
+    if(ant.forward.x != oldForward.x || ant.forward.y != oldForward.y){
+        ant.rot = newRotation(ant.forward);
+    }
+    ant.pos += ant.forward * distance;
+    ant.rot += distance * 15 - 7.5;
+    ants[id.x] = ant;
+}
+float newRotation(float2 v1){
+    float2 v2 = float2(0, 1);
+    // float angle = 0;
+    float dotProduct = dot(float4(v1.x, v1.y, 0, 0), float4(v2.x, v2.y, 0, 0));
+    float angle = acos(dotProduct / (length(v1) * length(v2)))*180/PI;
+    if(v1.x > 0){
+        angle = 360 - angle;
+    }
+    return angle;
+}
+float2 deflect(float distance, Ant ant)
+{
+    float futureY = ant.pos.y + ant.forward.y * distance;
+    float futureX = ant.pos.x + ant.forward.x * distance;
+    float2 result = float2(ant.forward.x, ant.forward.y);
+    // Deflect the ant's forward vector if below lowerBounds
+    if(futureY < -upperBounds){
+        result = float2(ant.forward.x, -ant.forward.y);
+    }
+    // Deflect the ant's forward vector if above upperBounds
+    if(futureY > upperBounds){
+        result = float2(ant.forward.x, -ant.forward.y);
+    }
+    // Deflect the ant's forward vector if to the left of leftBounds
+    if(futureX < -rightBounds){
+        result = float2(-ant.forward.x, ant.forward.y);
+    }
+    // Deflect the ant's forward vector if to the right of rightBounds
+    if(futureX > rightBounds){
+        result = float2(-ant.forward.x, ant.forward.y);
+    }
+
+    return result;
+}
