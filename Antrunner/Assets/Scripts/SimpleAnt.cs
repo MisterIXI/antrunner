@@ -40,4 +40,9 @@ public class SimpleAnt : MonoBehaviour
     //     // Gizmos.color = Color.red;
     //     // Gizmos.DrawLine(transform.position, Vector3.zero);
     // }
+
+    public static void ResetIdHelper()
+    {
+        idHelper = 0;
+    }
 }

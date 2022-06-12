@@ -1,19 +1,38 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class AntSpawner : MonoBehaviour
 {
-    private const float rightBounds = 150f;
-    private const float upperBounds = 80f;
-    private const int MAX_ANTS = 10000;
+    public static readonly float rightBounds = 150f;
+    public static readonly float upperBounds = 80f;
+    private int MAX_ANTS;
     public GameObject ant;
     public Ant[] ants;
+    public TMP_InputField antCount;
+    private bool respawning = false;
 
     private ComputeShader shader;
     // Start is called before the first frame update
     void Start()
     {
+        respawnAnts();
+    }
+    public void queueRespawn()
+    {
+        respawning = true;
+    }
+    public void respawnAnts()
+    {
+        //delete all Gameobjects tagged "Ant"
+        GameObject[] oldAnts = GameObject.FindGameObjectsWithTag("Ant");
+        foreach (GameObject ant in oldAnts)
+        {
+            Destroy(ant);
+        }
+        MAX_ANTS = int.Parse(antCount.text);
+        SimpleAnt.ResetIdHelper();
         ants = new Ant[MAX_ANTS];
         for (int i = 0; i < MAX_ANTS; i++)
         {
@@ -33,6 +52,11 @@ public class AntSpawner : MonoBehaviour
     }
     void FixedUpdate()
     {
+        if(respawning)
+        {
+            respawnAnts();
+            respawning = false;
+        }
         Compute();
         // Debug.Log("Ant0: " + ants[0].pos + " | " + ants[0].rot);
     }
@@ -60,9 +84,9 @@ public class AntSpawner : MonoBehaviour
     void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawLine(new Vector3(-rightBounds, upperBounds,0), new Vector3(-rightBounds, -upperBounds,0));
-        Gizmos.DrawLine(new Vector3(-rightBounds, -upperBounds,0), new Vector3(rightBounds, -upperBounds,0));
-        Gizmos.DrawLine(new Vector3(rightBounds, -upperBounds,0), new Vector3(rightBounds, upperBounds,0));
-        Gizmos.DrawLine(new Vector3(rightBounds, upperBounds,0), new Vector3(-rightBounds, upperBounds,0));
+        Gizmos.DrawLine(new Vector3(-rightBounds, upperBounds, 0), new Vector3(-rightBounds, -upperBounds, 0));
+        Gizmos.DrawLine(new Vector3(-rightBounds, -upperBounds, 0), new Vector3(rightBounds, -upperBounds, 0));
+        Gizmos.DrawLine(new Vector3(rightBounds, -upperBounds, 0), new Vector3(rightBounds, upperBounds, 0));
+        Gizmos.DrawLine(new Vector3(rightBounds, upperBounds, 0), new Vector3(-rightBounds, upperBounds, 0));
     }
 }

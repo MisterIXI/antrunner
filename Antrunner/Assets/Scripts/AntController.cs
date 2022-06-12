@@ -5,7 +5,7 @@ using UnityEngine;
 public class AntController : MonoBehaviour
 {
     public GameObject ant;
-    static int antCount = 100;
+    // static int antCount = 100;
     long lastSpawn;
     private Vector3 headPos;
 

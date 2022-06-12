@@ -27,7 +27,7 @@ public class TestGizmo : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawLine(transform.position, (Vector2)transform.position + forward);
 
-        Handles.Label(transform.position, "Ant: " + ant.pos + " | " + ant.rot);
+        // Handles.Label(transform.position, "Ant: " + ant.pos + " | " + ant.rot);
     }
     float newRotation(Vector2 v1)
     {
