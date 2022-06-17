@@ -21,12 +21,15 @@ float Rand(uint state){
     state *= 2654435769u;
     return state / 4294967295.0;
 }
+float Rand3(float2 co){
+    return frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453);
+}
 
 float hash( float n )
 {
 	return frac(sin(n)*43758.5453);
 }
-// The noise function returns a value in the range -1.0f -> 1.0f
+// The noise function returns a value in the range -1f -> 1.0f
 float Rand2( float3 x )
 {
 	float3 p = floor(x);
@@ -58,13 +61,15 @@ float GetAngle(Ant ant);
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     Ant ant = ants[id.x];
-    float rand = Rand2(float3(ant.position.x, ant.position.y + ant.direction.x, ant.direction.y + ant.frame));
-    // float rand = Rand(id.x + ant.position.x + ant.position.y + ant.direction.x + ant.direction.y);
-    if(rand < 0.3)
-        rand = 0.3;
+    // float rand = Rand(id.x + ant.position.x + ant.position.y + ant.direction.x + ant.direction.y + ant.frame);
+    // float rand = Rand2(float3(ant.position.x, ant.position.y + ant.direction.x, ant.direction.y + ant.frame));
+    float rand = Rand3(float2(id.x + ant.position.x + ant.position.y, ant.direction.x + ant.direction.y + ant.frame));
+
+    // if(rand < 0.1)
+    //     rand = 0.1;
     ant.direction = Deflect(rand, ant);
     ant.direction = Wiggle(rand, ant);
-    ant.position = ant.position + ant.direction * rand;
+    ant.position = ant.position + ant.direction * (rand + 0.1);
     ant.rotMatrix = RotationMatrix(GetAngle(ant));
 
     float current_frame = ant.frame +(rand*12);
@@ -99,7 +104,7 @@ float2 Wiggle(float rand, Ant ant)
     // get angle
     // float angle = GetAngle(ant) ;
     // slightly change direction between -5 and 5 degrees
-    float angle = (100 * rand - 50)/(180*PI);
+    float angle = (100.0 * rand-50.0)/(180.0*PI);
     // float angle = 15 /(180*PI);
     float x = ant.direction.x * cos(angle) - ant.direction.y * sin(angle);
     float y = ant.direction.x * sin(angle) + ant.direction.y * cos(angle);

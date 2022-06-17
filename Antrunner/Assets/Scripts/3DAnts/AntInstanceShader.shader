@@ -93,6 +93,7 @@ Shader "Custom/AntInstanceShader"
                 // v.vertex *= 5;
                 v.vertex = mul( _antRotMatrix, v.vertex);
                 v.vertex.xyz += float3(_antPos.x, 0, _antPos.y);
+                v.vertex.xyz -= float3(_antDir.x*3, 0, _antDir.y*3);
 
                 
             #endif

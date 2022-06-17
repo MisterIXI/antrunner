@@ -11,6 +11,7 @@ public class Instancer : MonoBehaviour
     private const int WIDTH = 1000;
     private const int HEIGHT = 1000;
     private int MAX_ANTS = 65000;
+    // private int ANT_MULT = 1;
     public ComputeShader computeShader;
     public Material antMat;
     public Mesh antMesh;
@@ -117,6 +118,7 @@ public class Instancer : MonoBehaviour
         //TODO: Release all computeBuffers
         antsBuffer.Release();
         argsBuffer.Release();
+        vertexBuffer.Release();
     }
     public static Vector3Int GetThreadGroupSizes(ComputeShader compute, int kernelIndex = 0)
     {
@@ -193,6 +195,7 @@ public class Instancer : MonoBehaviour
             Vector3 antPos = new Vector3(ants[0].position.x, 0, ants[0].position.y);
             Vector3 antDir = new Vector3(ants[0].direction.x, 0, ants[0].direction.y);
             Gizmos.DrawLine(antPos, antPos + antDir * 10);
+            Gizmos.DrawLine(antPos, antPos + Vector3.up * 10);
         }
 
     }
