@@ -1,0 +1,133 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#define PI 3.1415926538
+struct Ant{
+    float2 position;
+    float2 direction;
+    float2 rotMatrix;
+    float _debug;
+    float frame;
+    float next_frame;
+    float frame_interpolation;
+};
+
+// pseudorandom function; returns float between 0 and 1
+float Rand(uint state){
+    state ^= 2747636419u;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    return state / 4294967295.0;
+}
+
+float hash( float n )
+{
+	return frac(sin(n)*43758.5453);
+}
+// The noise function returns a value in the range -1.0f -> 1.0f
+float Rand2( float3 x )
+{
+	float3 p = floor(x);
+	float3 f = frac(x);
+
+	f = f*f*(3.0-2.0*f);
+	float n = p.x + p.y*57.0 + 113.0*p.z;
+
+	return lerp(lerp(lerp( hash(n+0.0), hash(n+1.0),f.x),
+					lerp( hash(n+57.0), hash(n+58.0),f.x),f.y),
+				lerp(lerp( hash(n+113.0), hash(n+114.0),f.x),
+					lerp( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
+}
+
+
+int width;
+int height;
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWStructuredBuffer<Ant> ants;
+int NbFrames;
+
+float2 Wiggle(float rand, Ant ant);
+float2 Deflect(float distance, Ant ant);
+float2 RotationMatrix(float angle);
+float GetAngle(Ant ant);
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    Ant ant = ants[id.x];
+    float rand = Rand2(float3(ant.position.x, ant.position.y + ant.direction.x, ant.direction.y + ant.frame));
+    // float rand = Rand(id.x + ant.position.x + ant.position.y + ant.direction.x + ant.direction.y);
+    if(rand < 0.3)
+        rand = 0.3;
+    ant.direction = Deflect(rand, ant);
+    ant.direction = Wiggle(rand, ant);
+    ant.position = ant.position + ant.direction * rand;
+    ant.rotMatrix = RotationMatrix(GetAngle(ant));
+
+    float current_frame = ant.frame +(rand*12);
+    int current_frame_floor = trunc(current_frame);
+	ant.frame = current_frame_floor;
+	ant.next_frame = current_frame_floor + 1;
+	ant.frame_interpolation = current_frame - current_frame_floor;
+	if (current_frame >= NbFrames) {
+		ant.frame = 0;
+		ant.next_frame = 1;
+	}
+	else if (current_frame >= NbFrames - 1)
+		ant.next_frame = 0;
+    ant._debug = GetAngle(ant);
+    ants[id.x] = ant;
+}
+float GetAngle(Ant ant){
+    return atan2(ant.direction.y, ant.direction.x);
+}
+
+float2 RotationMatrix(float angle)
+{
+    // angle += PI/2;
+    float s = sin(angle);
+    float c = cos(angle);
+    return float2(s,c);
+}
+
+
+float2 Wiggle(float rand, Ant ant)
+{
+    // get angle
+    // float angle = GetAngle(ant) ;
+    // slightly change direction between -5 and 5 degrees
+    float angle = (100 * rand - 50)/(180*PI);
+    // float angle = 15 /(180*PI);
+    float x = ant.direction.x * cos(angle) - ant.direction.y * sin(angle);
+    float y = ant.direction.x * sin(angle) + ant.direction.y * cos(angle);
+    return float2(x, y);
+}
+
+// bounce on boundary
+float2 Deflect(float distance, Ant ant)
+{
+    float futureY = ant.position.y + ant.direction.y * distance;
+    float futureX = ant.position.x + ant.direction.x * distance;
+    float2 result = float2(ant.direction.x, ant.direction.y);
+    // Deflect the ant's forward vector if below lowerBounds
+    if(futureY < 0){
+        result = float2(ant.direction.x, -ant.direction.y);
+    }
+    // Deflect the ant's forward vector if above upperBounds
+    if(futureY > height){
+        result = float2(ant.direction.x, -ant.direction.y);
+    }
+    // Deflect the ant's forward vector if to the left of leftBounds
+    if(futureX < 0){
+        result = float2(-ant.direction.x, ant.direction.y);
+    }
+    // Deflect the ant's forward vector if to the right of rightBounds
+    if(futureX > width){
+        result = float2(-ant.direction.x, ant.direction.y);
+    }
+
+    return result;
+}

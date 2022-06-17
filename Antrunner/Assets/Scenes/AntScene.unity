@@ -587,6 +587,10 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: f187a1f1-2033-4b1c-8a38-80092382f4ca
     m_ActionName: CameraControl/CameraScroll[/Mouse/position/x,/Mouse/position/y]
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: fbeae5ce-8247-4641-9684-926b86106fef
+    m_ActionName: DebugStepper/Step[/Keyboard/space]
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: CameraControl
@@ -1081,7 +1085,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2b4107923738e740ad4372fe0c08bfc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ant: {fileID: 8138632889969917823, guid: 79d264ac24c04c545926f2c73b0cf9b7, type: 3}
+  ant: {fileID: 2784818231229283404, guid: e67fdbbbc18a1e14597972a3d786e2ca, type: 3}
   antCount: {fileID: 932460095}
 --- !u!4 &1232989894
 Transform:
@@ -1108,50 +1112,6 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d0f94daae1f907e4fb5697d0c76e245d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!1 &1321080446
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1321080447}
-  - component: {fileID: 1321080448}
-  m_Layer: 0
-  m_Name: Tester
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1321080447
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1321080446}
-  m_LocalRotation: {x: -0, y: -0, z: 0.87969184, w: 0.47554433}
-  m_LocalPosition: {x: -47.5, y: 101.4, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 123.21}
---- !u!114 &1321080448
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1321080446}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8156dbb7a32e054fb8dbda8a0f9a388, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &1324880136
@@ -1250,7 +1210,7 @@ RectTransform:
   - {fileID: 745129006}
   - {fileID: 1425444440}
   m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -1490,7 +1450,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1536386214
 MonoBehaviour:

@@ -68,6 +68,34 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "DebugStepper",
+            "id": "012766e1-5c97-4d98-aea3-5189f0a92a95",
+            "actions": [
+                {
+                    "name": "Step",
+                    "type": "Button",
+                    "id": "fbeae5ce-8247-4641-9684-926b86106fef",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "81f3e383-c8e0-4303-ac6e-422f59c67e51",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Step",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": []

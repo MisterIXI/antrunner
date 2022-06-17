@@ -1,0 +1,89 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+struct Ant{
+    float2 position;
+    float2 direction;
+};
+
+// pseudorandom function; returns float between 0 and 1
+float Rand(uint state){
+    state ^= 2747636419u;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    return state / 4294967295.0;
+}
+
+int width;
+int height;
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> outputTexture;
+RWStructuredBuffer<Ant> ants;
+
+float2 Wiggle(float rand, Ant ant);
+float2 Deflect(float distance, Ant ant);
+void RenderAnt(Ant ant);
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    Ant ant = ants[id.x];
+    float rand = Rand(id.x + ant.position.x + ant.position.y + ant.direction.x + ant.direction.y);
+    ant.direction = Deflect(rand, ant);
+    ant.direction = Wiggle(rand, ant);
+    ant.position = ant.position + ant.direction * rand;
+    ants[id.x] = ant;
+    // RenderAnt(ant);
+    if(ant.position.x < 0 || ant.position.x > width || ant.position.y < 0 || ant.position.y > height)
+        return;
+    outputTexture[ant.position] = 1;
+}
+
+void RenderAnt(Ant ant){
+    // render a 9x9 square at the ant's position
+    for(int x = -4; x < 4; x++){
+        for(int y = -4; y < 4; y++){
+            outputTexture[ant.position + float2(x, y)] = float4(1, 1, 1, 1);
+        }
+    }
+}
+
+float2 Wiggle(float rand, Ant ant)
+{
+    // slightly change direction between -15 and 15 degrees
+    float angle = 30.0 * rand - 15.0;
+    
+    float x = ant.direction.x * cos(angle) - ant.direction.y * sin(angle);
+    float y = ant.direction.x * sin(angle) + ant.direction.y * cos(angle);
+    return float2(x, y);
+}
+
+// bounce on boundary
+float2 Deflect(float distance, Ant ant)
+{
+    float futureY = ant.position.y + ant.direction.y * distance;
+    float futureX = ant.position.x + ant.direction.x * distance;
+    float2 result = float2(ant.direction.x, ant.direction.y);
+    // Deflect the ant's forward vector if below lowerBounds
+    if(futureY < 0){
+        result = float2(ant.direction.x, -ant.direction.y);
+    }
+    // Deflect the ant's forward vector if above upperBounds
+    if(futureY > height){
+        result = float2(ant.direction.x, -ant.direction.y);
+    }
+    // Deflect the ant's forward vector if to the left of leftBounds
+    if(futureX < 0){
+        result = float2(-ant.direction.x, ant.direction.y);
+    }
+    // Deflect the ant's forward vector if to the right of rightBounds
+    if(futureX > width){
+        result = float2(-ant.direction.x, ant.direction.y);
+    }
+
+    return result;
+}
