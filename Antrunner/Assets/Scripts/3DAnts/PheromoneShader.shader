@@ -1,4 +1,4 @@
-Shader "Custom/AntInstanceShader"
+Shader "Custom/PheromoneShader"
 {
     Properties
     {
@@ -40,72 +40,51 @@ Shader "Custom/AntInstanceShader"
         #pragma surface surf Standard vertex:vert addshadow nolightmap
         #pragma instancing_options procedural:setup
 
-        float2 _antPos;
-        float2 _antDir;
-        float4x4 _antRotMatrix;
-
-        int _CurrentFrame;
-        int _NextFrame;
-        float _FrameInterpolation;
-        int NbFrames;
-
         #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-            struct Ant
-            {
-                float2 position;
-                float2 direction;
-                float2 rotMatrix;
-                uint pheromone;
-                float _debug;
-                float frame;
-                float next_frame;
-                float frame_interpolation;
+            struct Pheromone{
+                float nMone;
+                float pMone;
+                float eMone;
             };
 
-            StructuredBuffer<Ant> ants; 
-            StructuredBuffer<float4> vertexAnimation; 
-
+            StructuredBuffer<Pheromone> pheromones; 
+            StructuredBuffer<float4> vertices;
+            uint width;
+            uint height;
+            int downscale_factor;
         #endif
+        float3 _pheromone;
+        float _strength;
 
         void setup(){
             #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-                _CurrentFrame = ants[unity_InstanceID].frame;
-                _NextFrame = ants[unity_InstanceID].next_frame;
-                _FrameInterpolation = ants[unity_InstanceID].frame_interpolation;
-                _antPos = ants[unity_InstanceID].position;
-                _antDir = ants[unity_InstanceID].direction;
-                float2 tempMatrix = ants[unity_InstanceID].rotMatrix;
-                _antRotMatrix = float4x4(
-                tempMatrix.y, 0, -tempMatrix.x,0,
-                0,  1,  0,  0,
-                tempMatrix.x, 0, tempMatrix.y,0,
-                0,  0,  0,  1
-                );
-
- 
+                _pheromone = float3(pheromones[unity_InstanceID].nMone, pheromones[unity_InstanceID].pMone, pheromones[unity_InstanceID].eMone);
+                _strength = _pheromone.x + _pheromone.y + _pheromone.z;
+                _strength = _strength >10.0 ? 10.0 : _strength;
             #endif
         }
 
         void vert(inout appdata_custom v)
         {
             #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-                v.vertex = lerp(vertexAnimation[v.id * NbFrames + _CurrentFrame], vertexAnimation[v.id * NbFrames + _NextFrame], _FrameInterpolation);
-                // v.vertex *= 5;
-                v.vertex = mul( _antRotMatrix, v.vertex);
-                // move vertex to ant position
-                
-                v.vertex.xyz += float3(_antPos.x, 1, _antPos.y);
-                //move head to antPos
-                v.vertex.xyz -= float3(_antDir.x*3, 0, _antDir.y*3);
-
-                
+                v.vertex = vertices[v.id];
+                //scale plane to fit 1x1 square
+                v.vertex *= 0.1;
+                //scale plane by strength
+                v.vertex *= 0.1 * _strength;
+                uint x = unity_InstanceID.x % width*downscale_factor;
+                uint y = unity_InstanceID.x/width*downscale_factor;
+                // y = y < 0 ? 50 : y;
+                v.vertex.xyz += float3(x, 3,y);
             #endif
         }
 
         void surf (Input IN, inout SurfaceOutputStandard o) {
             fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Color;
             // fixed4 m = tex2D (_MetallicGlossMap, IN.uv_MainTex); 
+            // o.Albedo = float4(_pheromone.x, _pheromone.y, _pheromone.z, 1);
             o.Albedo = c.rgb;
+            // o.Alpha = 0.5;
             o.Alpha = c.a;
             // o.Normal = UnpackNormal (tex2D (_BumpMap, IN.uv_BumpMap)) * 0.000001;
             o.Metallic = _Metallic;

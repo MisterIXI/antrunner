@@ -1,14 +1,23 @@
 // Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+#pragma kernel AntMovement
+#pragma kernel AntPheromone 
+#pragma kernel PheromoneDecay
 #define PI 3.1415926538
 struct Ant{
     float2 position;
     float2 direction;
     float2 rotMatrix;
+    uint pheromone;
     float _debug;
     float frame;
     float next_frame;
     float frame_interpolation;
+};
+
+struct Pheromone{
+   float nMone;
+   float pMone;
+   float eMone;
 };
 
 // pseudorandom function; returns float between 0 and 1
@@ -47,18 +56,24 @@ float Rand2( float3 x )
 
 int width;
 int height;
+int downscale_factor;
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWStructuredBuffer<Ant> ants;
+RWStructuredBuffer<Pheromone> pheromones;
 int NbFrames;
+float decay;
 
 float2 Wiggle(float rand, Ant ant);
+float2 WeightedWiggle(float rand, Ant ant);
 float2 Deflect(float distance, Ant ant);
 float2 RotationMatrix(float angle);
+float2 FixPosition(float2 position);
 float GetAngle(Ant ant);
+float CalcFoodWeight(int2 basePheromone);
 
 [numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void AntMovement (uint3 id : SV_DispatchThreadID)
 {
     Ant ant = ants[id.x];
     // float rand = Rand(id.x + ant.position.x + ant.position.y + ant.direction.x + ant.direction.y + ant.frame);
@@ -68,9 +83,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     // if(rand < 0.1)
     //     rand = 0.1;
     ant.direction = Deflect(rand, ant);
+    ant.direction = WeightedWiggle(rand, ant);
     ant.direction = Wiggle(rand, ant);
+    // ant._debug = WeightedWiggle(rand, ant).x;
     ant.position = ant.position + ant.direction * (rand + 0.1);
     ant.rotMatrix = RotationMatrix(GetAngle(ant));
+    ant.pheromone = 1;
+    ant.position = FixPosition(ant.position);
 
     float current_frame = ant.frame +(rand*12);
     int current_frame_floor = trunc(current_frame);
@@ -97,6 +116,35 @@ float2 RotationMatrix(float angle)
     float c = cos(angle);
     return float2(s,c);
 }
+float2 Turn(float angle, float2 direction){
+    float s = sin(angle);
+    float c = cos(angle);
+    return float2(c*direction.x - s*direction.y, s*direction.x + c*direction.y);
+}
+
+float2 WeightedWiggle(float rand, Ant ant)
+{
+    float2 direction = ant.direction;
+    //max 50° turn radius
+    float angle = 50 * rand;
+    int2 checkLeftBase = uint2(ant.position + Turn(45/180.0*PI, direction)*2);
+    int2 checkRightBase = uint2(ant.position + Turn(-45/180.0*PI, direction)*2);
+    float leftWeight = CalcFoodWeight(checkLeftBase) + 1;
+    float rightWeight = CalcFoodWeight(checkRightBase) + 1;
+    float centerWeight = CalcFoodWeight(int2(ant.position)) + 1;
+
+    float bias = (leftWeight + rightWeight + centerWeight);
+    leftWeight /= bias;
+    rightWeight /= bias;
+    centerWeight /= bias;
+    //right angle positive, left angle negative
+    angle = angle*leftWeight - angle*rightWeight;
+    angle *= (1 - centerWeight);
+    angle /= 180.0*PI;
+    return normalize(Turn(angle, direction));
+    //TODO: fix this
+    // return float2(angle, 0);
+}
 
 
 float2 Wiggle(float rand, Ant ant)
@@ -104,18 +152,29 @@ float2 Wiggle(float rand, Ant ant)
     // get angle
     // float angle = GetAngle(ant) ;
     // slightly change direction between -5 and 5 degrees
-    float angle = (100.0 * rand-50.0)/(180.0*PI);
+    float angle = (50 * rand-25.0)/(180.0*PI);
     // float angle = 15 /(180*PI);
-    float x = ant.direction.x * cos(angle) - ant.direction.y * sin(angle);
-    float y = ant.direction.x * sin(angle) + ant.direction.y * cos(angle);
-    return float2(x, y);
+    return Turn(angle, ant.direction);
+}
+
+float2 FixPosition(float2 position)
+{
+    if(position.x < 0)
+        position.x = 15;
+    if(position.x > width)
+        position.x = width-15;
+    if(position.y < 0)
+        position.y = 15;
+    if(position.y > height)
+        position.y = height-15;
+    return position;
 }
 
 // bounce on boundary
 float2 Deflect(float distance, Ant ant)
 {
-    float futureY = ant.position.y + ant.direction.y * distance;
-    float futureX = ant.position.x + ant.direction.x * distance;
+    float futureY = ant.position.y + ant.direction.y * (distance + 0.1);
+    float futureX = ant.position.x + ant.direction.x * (distance + 0.1);
     float2 result = float2(ant.direction.x, ant.direction.y);
     // Deflect the ant's forward vector if below lowerBounds
     if(futureY < 0){
@@ -135,4 +194,83 @@ float2 Deflect(float distance, Ant ant)
     }
 
     return result;
+}
+
+[numthreads(8,8,1)]
+void AntPheromone(uint3 id : SV_DispatchThreadID)
+{
+    Ant ant = ants[id.x];
+    int pheromoneID = floor(ant.position.x/downscale_factor) + floor(ant.position.y/downscale_factor) * width;
+    //add 0.05 to the pheromone of the ant's current mode
+    // ant.pheromone = 0;
+    float pheromoneStrength =3;
+    if(ant.pheromone == 1)
+        pheromones[pheromoneID].nMone +=pheromoneStrength;
+    else if(ant.pheromone == 2)
+        pheromones[pheromoneID].pMone += pheromoneStrength;
+    else if(ant.pheromone == 3)
+        pheromones[pheromoneID].eMone += pheromoneStrength;
+}
+
+
+[numthreads(8,8,1)]
+void PheromoneDecay(uint3 id : SV_DispatchThreadID)
+{
+    //substract 0.05 from all pheromones or set to 0 if below 0 otherwise
+    // pheromones[id.x].nMone = 0.1;
+    // pheromones[id.x].pMone = 0.01;
+    // pheromones[id.x].eMone = 0.01;
+    // if(pheromones[id.x * id.y].nMone > 0.1){
+    //     pheromones[id.x * id.y].nMone -= 0.1;
+    // }
+    // else{
+    //     pheromones[id.x * id.y].nMone = 0;
+    // }
+    // float decay = 0.001;
+    int index = id.x + id.y * width;
+
+    pheromones[index].pMone = pheromones[index].pMone <= decay ? 0.0 : pheromones[index].pMone*0.99;
+    pheromones[index].nMone = pheromones[index].nMone <= decay ? 0.0 : pheromones[index].nMone*0.99;
+    pheromones[index].eMone = pheromones[index].eMone <= decay ? 0.0 : pheromones[index].eMone*0.99;
+}
+
+float CalcFoodWeight(int2 basePheromone){
+    float weight = 0;
+    if(basePheromone.x + 1 >= width || basePheromone.y + 1 >= height || basePheromone.x - 1 < 0 || basePheromone.y - 1 < 0){
+        return weight;
+    }
+    //check all 9 surrounding nMones
+    weight += pheromones[basePheromone.x + basePheromone.y * width].nMone;
+    weight += pheromones[basePheromone.x + (basePheromone.y + 1) * width].nMone;
+    weight += pheromones[basePheromone.x + (basePheromone.y - 1) * width].nMone;
+    weight += pheromones[basePheromone.x + 1 + basePheromone.y * width].nMone;
+    weight += pheromones[basePheromone.x - 1 + basePheromone.y * width].nMone;
+    weight += pheromones[basePheromone.x + 1 + (basePheromone.y + 1) * width].nMone;
+    weight += pheromones[basePheromone.x - 1 + (basePheromone.y + 1) * width].nMone;
+    weight += pheromones[basePheromone.x + 1 + (basePheromone.y - 1) * width].nMone;
+    weight += pheromones[basePheromone.x - 1 + (basePheromone.y - 1) * width].nMone;
+
+    //check all 9 surrounding pMones
+    weight += 5*pheromones[basePheromone.x + basePheromone.y * width].pMone;
+    weight += 5*pheromones[basePheromone.x + (basePheromone.y + 1) * width].pMone;
+    weight += 5*pheromones[basePheromone.x + (basePheromone.y - 1) * width].pMone;
+    weight += 5*pheromones[basePheromone.x + 1 + basePheromone.y * width].pMone;
+    weight += 5*pheromones[basePheromone.x - 1 + basePheromone.y * width].pMone;
+    weight += 5*pheromones[basePheromone.x + 1 + (basePheromone.y + 1) * width].pMone;
+    weight += 5*pheromones[basePheromone.x - 1 + (basePheromone.y + 1) * width].pMone;
+    weight += 5*pheromones[basePheromone.x + 1 + (basePheromone.y - 1) * width].pMone;
+    weight += 5*pheromones[basePheromone.x - 1 + (basePheromone.y - 1) * width].pMone;
+
+    //check all 9 surrounding eMones
+    weight -= 2.5*pheromones[basePheromone.x + basePheromone.y * width].eMone;
+    weight -= 2.5*pheromones[basePheromone.x + (basePheromone.y + 1) * width].eMone;
+    weight -= 2.5*pheromones[basePheromone.x + (basePheromone.y - 1) * width].eMone;
+    weight -= 2.5*pheromones[basePheromone.x + 1 + basePheromone.y * width].eMone;
+    weight -= 2.5*pheromones[basePheromone.x - 1 + basePheromone.y * width].eMone;
+    weight -= 2.5*pheromones[basePheromone.x + 1 + (basePheromone.y + 1) * width].eMone;
+    weight -= 2.5*pheromones[basePheromone.x - 1 + (basePheromone.y + 1) * width].eMone;
+    weight -= 2.5*pheromones[basePheromone.x + 1 + (basePheromone.y - 1) * width].eMone;
+    weight -= 2.5*pheromones[basePheromone.x - 1 + (basePheromone.y - 1) * width].eMone;
+
+    return weight;
 }

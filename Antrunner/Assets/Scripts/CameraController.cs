@@ -49,11 +49,12 @@ public class CameraController : MonoBehaviour
     public void Zoom(InputAction.CallbackContext context)
     {
         float scroll = context.ReadValue<float>();
-        float newZoom = Camera.main.orthographicSize - scroll * zoomSensitivity;
-        if (newZoom > 0)
-        {
-            GetComponent<Camera>().orthographicSize = newZoom;
-        }
+        // float newZoom = Camera.main.orthographicSize - scroll * zoomSensitivity;
+        Camera.main.transform.Translate(new Vector3(0, 0, scroll * zoomSensitivity));
+        // if (newZoom > 0)
+        // {
+        //     GetComponent<Camera>().orthographicSize = newZoom;
+        // }
     }
 
 }
