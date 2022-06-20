@@ -162,6 +162,7 @@ MonoBehaviour:
   antSample: {fileID: 4658894413310006423}
   debugAngle: 15
   debugDist: 2
+  debugSize: 3
 --- !u!4 &91537026
 Transform:
   m_ObjectHideFlags: 0
@@ -475,7 +476,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!23 &348211189
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -534,7 +535,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 348211188}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 7.1, y: 0, z: -5}
   m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -591,12 +592,12 @@ Camera:
     x: 0
     y: 0
     width: 1
-    height: 1
+    height: 2
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
-  orthographic: 0
-  orthographic size: 5
+  orthographic: 1
+  orthographic size: 59.33
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -620,7 +621,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 452618625}
   m_LocalRotation: {x: 0.70710665, y: -8.1490725e-10, z: 6.693881e-10, w: 0.70710695}
-  m_LocalPosition: {x: 127.50296, y: 318.3169, z: 138.12657}
+  m_LocalPosition: {x: 0, y: 50, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

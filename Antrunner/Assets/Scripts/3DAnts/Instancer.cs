@@ -8,11 +8,14 @@ using UnityEngine.InputSystem;
 public class Instancer : MonoBehaviour
 {
 
-    private const int WIDTH = 300;
-    private const int HEIGHT = 300;
-    private const int DOWNSCALE_FACTOR = 2;
-    private readonly int ANT_COUNT = 1;
-    private readonly int ANT_MULT = 1;
+    private const int WIDTH = 5000;
+    private const int HEIGHT = 5000;
+    private const int DOWNSCALE_FACTOR = 5;
+    private const int WIDTH_SCALED = WIDTH / DOWNSCALE_FACTOR;
+    private const int HEIGHT_SCALED = HEIGHT / DOWNSCALE_FACTOR;
+    // 65200 * 16 for a Million ants
+    private readonly int ANT_COUNT = 50000;
+    private readonly int ANT_MULT = 5;
     public ComputeShader computeShader;
     public Material antMat;
     public Material pheromoneMat;
@@ -27,6 +30,8 @@ public class Instancer : MonoBehaviour
     private ComputeBuffer pheromoneBuffer;
     private ComputeBuffer pheromoneVertexBuffer;
     private ComputeBuffer pheromoneArgsBuffer;
+    // // uncomment below to show ant array in Inspector (and make it public)
+    // [SerializeField]
     private Ant[] ants;
     private Pheromone[] pheromones;
 
@@ -35,22 +40,25 @@ public class Instancer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        SetCameraToField();
         // Initialize Rendertexture
         meshRenderer = GetComponentInChildren<MeshRenderer>();
-
+        GameObject.Find("PheromoneIndicator").SetActive(false);
 
         // Initialize Buffers
         ants = SpawnAnts(ANT_COUNT * ANT_MULT);
         antsBuffer = new ComputeBuffer(ANT_COUNT * ANT_MULT, sizeof(uint) + sizeof(float) * 10);
         antsBuffer.SetData(ants);
-        pheromones = new Pheromone[WIDTH * HEIGHT / DOWNSCALE_FACTOR];
-        pheromoneBuffer = new ComputeBuffer(HEIGHT * WIDTH / DOWNSCALE_FACTOR, Marshal.SizeOf(typeof(Pheromone)));
+        pheromones = new Pheromone[HEIGHT_SCALED * WIDTH_SCALED];
+        pheromoneBuffer = new ComputeBuffer(HEIGHT_SCALED * WIDTH_SCALED, Marshal.SizeOf(typeof(Pheromone)));
         pheromoneBuffer.SetData(pheromones);
 
         //configure Shader
         computeShader.SetInt("width", WIDTH);
         computeShader.SetInt("height", HEIGHT);
-        computeShader.SetInt("downscaleFactor", DOWNSCALE_FACTOR);
+        computeShader.SetInt("ant_count_x", ANT_COUNT);
+        computeShader.SetInt("ant_count_y", ANT_MULT);
+        computeShader.SetInt("downscale_factor", DOWNSCALE_FACTOR);
         computeShader.SetFloat("decay", 0.001f);
         computeShader.SetBuffer(0, "ants", antsBuffer);
         computeShader.SetBuffer(0, "pheromones", pheromoneBuffer);
@@ -72,7 +80,7 @@ public class Instancer : MonoBehaviour
             1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments
             );
         pheromoneArgsBuffer.SetData(new uint[5] {
-            planeMesh.GetIndexCount(0), (uint) (WIDTH* HEIGHT/2), 0, 0, 0
+            planeMesh.GetIndexCount(0), (uint) (WIDTH_SCALED*HEIGHT_SCALED), 0, 0, 0
         });
         GenerateSkinnedAnimationForGPUBuffer();
 
@@ -84,8 +92,9 @@ public class Instancer : MonoBehaviour
         public float pMone;
         public float eMone;
     };
-
-    struct Ant
+    // // uncomment below to show ant array in Inspector
+    // [System.Serializable]
+    public struct Ant
     {
         public Vector2 position;
         public Vector2 direction;
@@ -96,6 +105,8 @@ public class Instancer : MonoBehaviour
         public float next_frame;
         public float frame_interpolation;
     }
+
+    #region Run
     void Update()
     {
         Compute();
@@ -109,9 +120,25 @@ public class Instancer : MonoBehaviour
     {
         if (context.started)
         {
-            Compute();
+            // Compute();
             Debug.Log("Ant0: " + ants[0].position + " | " + ants[0].direction + " | " + ants[0]._debug + " | " + ants[0].rotMatrix);
 
+            // for (int i = 0; i < pheromones.Length; i++)
+            // {
+            //     pheromones[i].nMone = 5;
+            // }
+            Debug.Log("Pheromones 0: " + pheromones[0].nMone);
+            // print out the pheromones
+            string pheromoneString = "";
+            for (int i = 0; i < pheromones.Length; i++)
+            {
+                pheromoneString += pheromones[i].nMone + " ";
+                if (i != 0 && i % WIDTH_SCALED == 0)
+                {
+                    pheromoneString += "\n";
+                }
+            }
+            Debug.Log(pheromoneString);
         }
 
     }
@@ -120,19 +147,20 @@ public class Instancer : MonoBehaviour
     {
 
         Graphics.DrawMeshInstancedIndirect(antMesh, 0, antMat, InfiniteBounds, antArgsBuffer, 0);
-        Graphics.DrawMeshInstancedIndirect(planeMesh, 0, pheromoneMat, InfiniteBounds, pheromoneArgsBuffer, 0);
+        // Graphics.DrawMeshInstancedIndirect(planeMesh, 0, pheromoneMat, InfiniteBounds, pheromoneArgsBuffer, 0);
 
     }
 
     private void Compute()
     {
         computeShader.Dispatch(0, ANT_COUNT, ANT_MULT, 1);
-        computeShader.Dispatch(1, ANT_COUNT, ANT_MULT, 1);
-        pheromoneBuffer.GetData(pheromones);
-        computeShader.Dispatch(2, WIDTH/2, HEIGHT/2, 1);
-        pheromoneBuffer.GetData(pheromones);
+        // computeShader.Dispatch(1, ANT_COUNT, ANT_MULT, 1);
+        // pheromoneBuffer.GetData(pheromones);
+        // computeShader.Dispatch(2, WIDTH_SCALED, HEIGHT_SCALED, 1);
+        // pheromoneBuffer.GetData(pheromones);
         antsBuffer.GetData(ants);
     }
+    #endregion
 
 
     private Ant[] SpawnAnts(int antCount)
@@ -222,6 +250,8 @@ public class Instancer : MonoBehaviour
         pheromoneVertexBuffer.SetData(pheromoneVertices);
         pheromoneMat.SetInteger("height", HEIGHT);
         pheromoneMat.SetInteger("width", WIDTH);
+        pheromoneMat.SetInteger("ant_count", ANT_COUNT * ANT_MULT);
+        pheromoneMat.SetInteger("downscale_factor", DOWNSCALE_FACTOR);
         pheromoneMat.SetBuffer("vertices", pheromoneVertexBuffer);
         pheromoneMat.SetBuffer("pheromones", pheromoneBuffer);
     }
@@ -239,25 +269,75 @@ public class Instancer : MonoBehaviour
         antMat.SetBuffer("vertexAnimation", vertexBuffer);
         antSample.SetActive(false);
     }
+
+    private void SetCameraToField(){
+        Camera.main.transform.position = new Vector3(WIDTH/2, 150, HEIGHT/2);
+        Camera.main.orthographicSize = WIDTH/2 + 10;
+    }
     public int debugAngle = 45;
     public int debugDist = 2;
+    public int debugSize = 3;
     void OnDrawGizmos()
     {
         if (Application.isPlaying)
         {
-            Gizmos.color = Color.red;
-            // draw ant[0] direction as line
-            Vector3 antPos = new Vector3(ants[0].position.x, 0, ants[0].position.y);
-            Vector3 antDir = new Vector3(ants[0].direction.x, 0, ants[0].direction.y);
-            // Vector3 debugDir = 
-            Gizmos.DrawLine(antPos, antPos + antDir * 10);
-            Gizmos.DrawLine(antPos, antPos + Vector3.up * 10);
+            GizmoAntPos();
+            GizmoPlayArea();
+            GizmoAntSight();
 
-            float s = Mathf.Sin(debugAngle / 180f * Mathf.PI);
-            float c = Mathf.Cos(debugAngle / 180f * Mathf.PI);
-            Vector3 leftCheck = new Vector3(c * antDir.x - s * antDir.z, 0, s * antDir.x + c * antDir.z);
-            Gizmos.DrawCube(antPos + leftCheck * debugDist, Vector3.one * 1f);
+            // // draw cubes at pheromone calculation
+            // Gizmos.color = Color.blue;
+            // for (int i = 0; i < pheromones.Length; i++)
+            // {
+            //     int x = (i % WIDTH_SCALED) * DOWNSCALE_FACTOR;
+            //     int y = (i / WIDTH_SCALED) * DOWNSCALE_FACTOR;
+            //     Gizmos.DrawCube(new Vector3(x, 0, y), Vector3.one * 0.5f);
+            // }
         }
-
     }
+
+    private void GizmoAntPos()
+    {
+        // draw ant[0] direction and pos as line
+        Gizmos.color = Color.red;
+        Vector3 antPos = new Vector3(ants[0].position.x, 0, ants[0].position.y);
+        Vector3 antDir = new Vector3(ants[0].direction.x, 0, ants[0].direction.y);
+        Gizmos.DrawLine(antPos, antPos + antDir * 10);
+        Gizmos.DrawLine(antPos, antPos + Vector3.up * 10);
+    }
+
+    private void GizmoPlayArea()
+    {
+        // draw lines around the playarea
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(WIDTH, 0, 0));
+        Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(0, 0, HEIGHT));
+        Gizmos.DrawLine(new Vector3(WIDTH, 0, 0), new Vector3(WIDTH, 0, HEIGHT));
+        Gizmos.DrawLine(new Vector3(0, 0, HEIGHT), new Vector3(WIDTH, 0, HEIGHT));
+    }
+
+    private void GizmoAntSight()
+    {
+        // draw cubes for the three sight directions of ant[0]
+        Gizmos.color = Color.blue;
+        Vector3 antPos = new Vector3(ants[0].position.x, 0, ants[0].position.y);
+        Vector3 antDir = new Vector3(ants[0].direction.x, 0, ants[0].direction.y);
+        // get vector to left checking area
+        float s = Mathf.Sin(debugAngle / 180f * Mathf.PI);
+        float c = Mathf.Cos(debugAngle / 180f * Mathf.PI);
+        Vector3 leftCheck = new Vector3(c * antDir.x - s * antDir.z, 0, s * antDir.x + c * antDir.z);
+        // get vector to right checking area
+        s = Mathf.Sin(-debugAngle / 180f * Mathf.PI);
+        c = Mathf.Cos(-debugAngle / 180f * Mathf.PI);
+        Vector3 rightCheck = new Vector3(c * antDir.x + s * antDir.z, 0, -s * antDir.x + c * antDir.z);
+        // calculate cube size
+        int cubeSize = 3 * DOWNSCALE_FACTOR;
+        // draw cubes left, right and forward
+        // Gizmos.DrawCube(antPos + leftCheck * debugDist, new Vector3(cubeSize, 0.3f, cubeSize));
+        // Gizmos.DrawCube(antPos + rightCheck * debugDist, new Vector3(cubeSize, 0.3f, cubeSize));
+        // Gizmos.DrawCube(antPos + antDir * debugDist, new Vector3(cubeSize, 0.3f, cubeSize));
+    }
+
+    // private void GizmoAntSightHelper(Vector3 cube)
+
 }

@@ -49,9 +49,12 @@ Shader "Custom/PheromoneShader"
 
             StructuredBuffer<Pheromone> pheromones; 
             StructuredBuffer<float4> vertices;
+            uint ant_count;
             uint width;
             uint height;
-            int downscale_factor;
+            uint width_scaled;
+            uint height_scaled;
+            uint downscale_factor;
         #endif
         float3 _pheromone;
         float _strength;
@@ -59,8 +62,10 @@ Shader "Custom/PheromoneShader"
         void setup(){
             #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
                 _pheromone = float3(pheromones[unity_InstanceID].nMone, pheromones[unity_InstanceID].pMone, pheromones[unity_InstanceID].eMone);
-                _strength = _pheromone.x + _pheromone.y + _pheromone.z;
-                _strength = _strength >10.0 ? 10.0 : _strength;
+                _strength = (_pheromone.x + _pheromone.y + _pheromone.z) / ant_count;
+                _strength = _strength >1 ? 1 : _strength;
+                width_scaled = width / downscale_factor;
+                height_scaled = height / downscale_factor;
             #endif
         }
 
@@ -71,11 +76,12 @@ Shader "Custom/PheromoneShader"
                 //scale plane to fit 1x1 square
                 v.vertex *= 0.1;
                 //scale plane by strength
-                v.vertex *= 0.1 * _strength;
-                uint x = unity_InstanceID.x % width*downscale_factor;
-                uint y = unity_InstanceID.x/width*downscale_factor;
-                // y = y < 0 ? 50 : y;
+                v.vertex *= (downscale_factor/2) * _strength;
+                uint x = (unity_InstanceID % width_scaled)*downscale_factor;
+                uint y = (unity_InstanceID/width_scaled)*downscale_factor;
                 v.vertex.xyz += float3(x, 3,y);
+                // move to middle of downscaled position
+                v.vertex.xyz += float3(downscale_factor/2, 0, downscale_factor/2);
             #endif
         }
 

@@ -53,9 +53,12 @@ float Rand2( float3 x )
 					lerp( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
 }
 
-
+int ant_count_x;
+int ant_count_y;
 int width;
 int height;
+int width_scaled;
+int height_scaled;
 int downscale_factor;
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
@@ -72,13 +75,13 @@ float2 FixPosition(float2 position);
 float GetAngle(Ant ant);
 float CalcFoodWeight(int2 basePheromone);
 
-[numthreads(8,8,1)]
+[numthreads(1,1,1)]
 void AntMovement (uint3 id : SV_DispatchThreadID)
 {
-    Ant ant = ants[id.x];
-    // float rand = Rand(id.x + ant.position.x + ant.position.y + ant.direction.x + ant.direction.y + ant.frame);
+    Ant ant = ants[id.x + id.y * ant_count_x];
+    // float rand = Rand((id.x + id.y * ant_count_x) + ant.position.x + ant.position.y + ant.direction.x + ant.direction.y + ant.frame);
     // float rand = Rand2(float3(ant.position.x, ant.position.y + ant.direction.x, ant.direction.y + ant.frame));
-    float rand = Rand3(float2(id.x + ant.position.x + ant.position.y, ant.direction.x + ant.direction.y + ant.frame));
+    float rand = Rand3(float2((id.x + id.y * ant_count_x) + ant.position.x + ant.position.y, ant.direction.x + ant.direction.y + ant.frame));
 
     // if(rand < 0.1)
     //     rand = 0.1;
@@ -103,7 +106,7 @@ void AntMovement (uint3 id : SV_DispatchThreadID)
 	else if (current_frame >= NbFrames - 1)
 		ant.next_frame = 0;
     ant._debug = GetAngle(ant);
-    ants[id.x] = ant;
+    ants[(id.x + id.y * ant_count_x)] = ant;
 }
 float GetAngle(Ant ant){
     return atan2(ant.direction.y, ant.direction.x);
@@ -196,11 +199,14 @@ float2 Deflect(float distance, Ant ant)
     return result;
 }
 
-[numthreads(8,8,1)]
+[numthreads(1,1,1)]
 void AntPheromone(uint3 id : SV_DispatchThreadID)
 {
-    Ant ant = ants[id.x];
-    int pheromoneID = floor(ant.position.x/downscale_factor) + floor(ant.position.y/downscale_factor) * width;
+    Ant ant = ants[(id.x + id.y * ant_count_x)];
+    // get x
+    int pheromoneID = (int)(ant.position.x/downscale_factor );
+    // add y
+    pheromoneID += (int)(ant.position.y/downscale_factor) * width/downscale_factor;
     //add 0.05 to the pheromone of the ant's current mode
     // ant.pheromone = 0;
     float pheromoneStrength =3;
@@ -213,7 +219,7 @@ void AntPheromone(uint3 id : SV_DispatchThreadID)
 }
 
 
-[numthreads(8,8,1)]
+[numthreads(1,1,1)]
 void PheromoneDecay(uint3 id : SV_DispatchThreadID)
 {
     //substract 0.05 from all pheromones or set to 0 if below 0 otherwise
@@ -227,7 +233,7 @@ void PheromoneDecay(uint3 id : SV_DispatchThreadID)
     //     pheromones[id.x * id.y].nMone = 0;
     // }
     // float decay = 0.001;
-    int index = id.x + id.y * width;
+    int index = id.x + id.y * width/downscale_factor;
 
     pheromones[index].pMone = pheromones[index].pMone <= decay ? 0.0 : pheromones[index].pMone*0.99;
     pheromones[index].nMone = pheromones[index].nMone <= decay ? 0.0 : pheromones[index].nMone*0.99;
