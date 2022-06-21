@@ -93,8 +93,9 @@ Shader "Custom/AntInstanceShader"
                 // v.vertex *= 5;
                 v.vertex = mul( _antRotMatrix, v.vertex);
                 // move vertex to ant position
-                
-                v.vertex.xyz += float3(_antPos.x, 1, _antPos.y);
+                // v.vertex.xyz += float3(_antPos.x, 1, _antPos.y);
+                // (visualisation) change vertical position so ants are in a 3D cube
+                v.vertex.xyz += float3(_antPos.x,unity_InstanceID * 0.01f , _antPos.y);
                 //move head to antPos
                 v.vertex.xyz -= float3(_antDir.x*3, 0, _antDir.y*3);
 

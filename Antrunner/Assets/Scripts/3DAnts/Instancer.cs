@@ -4,18 +4,21 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using System.Runtime.InteropServices;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using TMPro;
 
 public class Instancer : MonoBehaviour
 {
 
-    private const int WIDTH = 5000;
-    private const int HEIGHT = 5000;
+    private const int WIDTH = 500;
+    private const int HEIGHT = 500;
     private const int DOWNSCALE_FACTOR = 5;
     private const int WIDTH_SCALED = WIDTH / DOWNSCALE_FACTOR;
     private const int HEIGHT_SCALED = HEIGHT / DOWNSCALE_FACTOR;
     // 65200 * 16 for a Million ants
-    private readonly int ANT_COUNT = 50000;
-    private readonly int ANT_MULT = 5;
+    private int ANT_COUNT = 50000;
+    private int ANT_MULT = 3;
     public ComputeShader computeShader;
     public Material antMat;
     public Material pheromoneMat;
@@ -36,10 +39,14 @@ public class Instancer : MonoBehaviour
     private Pheromone[] pheromones;
 
     private Bounds InfiniteBounds = new Bounds(Vector3.zero, Vector3.one * 9999);
+    private Slider countSlider;
+    private Slider multSlider;
+    private TMP_Text countLabel;
 
     // Start is called before the first frame update
     void Start()
     {
+        HandleConfig();
         SetCameraToField();
         // Initialize Rendertexture
         meshRenderer = GetComponentInChildren<MeshRenderer>();
@@ -269,10 +276,48 @@ public class Instancer : MonoBehaviour
         antMat.SetBuffer("vertexAnimation", vertexBuffer);
         antSample.SetActive(false);
     }
+    private void HandleConfig()
+    {
+        countSlider = GameObject.Find("CountSlider").GetComponent<Slider>();
+        multSlider = GameObject.Find("MultSlider").GetComponent<Slider>();
+        countLabel = GameObject.Find("CountLabel").GetComponent<TMP_Text>();
+        GameObject.Find("SpawnButton").GetComponent<Button>().onClick.AddListener(delegate { OnClick(); });
+        countSlider.onValueChanged.AddListener(delegate { ValueChanged(); });
+        multSlider.onValueChanged.AddListener(delegate { ValueChanged(); });
+        if (ConfigHolder.antCount != 0 && ConfigHolder.antMult != 0)
+        {
+            ANT_COUNT = ConfigHolder.antCount;
+            ANT_MULT = ConfigHolder.antMult;
+        }
+        countSlider.value = ANT_COUNT / 1000;
+        multSlider.value = ANT_MULT;
+    }
 
-    private void SetCameraToField(){
-        Camera.main.transform.position = new Vector3(WIDTH/2, 150, HEIGHT/2);
-        Camera.main.orthographicSize = WIDTH/2 + 10;
+    public void ValueChanged()
+    {
+        if (countSlider.value == 0)
+            ConfigHolder.antCount = 1;
+        else
+            ConfigHolder.antCount = (int)countSlider.value * 1000;
+        ConfigHolder.antMult = (int)multSlider.value;
+        string text = "";
+        text += (ConfigHolder.antCount == 1) ? "1" : ConfigHolder.antCount / 1000 + "k";
+        text += "*" + ConfigHolder.antMult + "=";
+        int tempCount = ConfigHolder.antCount * ConfigHolder.antMult;
+        text += tempCount == 1 ? "1" : tempCount / 1000 + "k";
+        countLabel.text = text;
+    }
+
+    private void OnClick()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+    private void SetCameraToField()
+    {
+        int height = (int)(ANT_COUNT * ANT_MULT * 0.01f) + 10;
+        Camera.main.transform.position = new Vector3(WIDTH / 2, height, HEIGHT / 2);
+        Camera.main.orthographicSize = WIDTH / 2 + 10;
+        Camera.main.farClipPlane = height + 10;
     }
     public int debugAngle = 45;
     public int debugDist = 2;
@@ -331,7 +376,7 @@ public class Instancer : MonoBehaviour
         c = Mathf.Cos(-debugAngle / 180f * Mathf.PI);
         Vector3 rightCheck = new Vector3(c * antDir.x + s * antDir.z, 0, -s * antDir.x + c * antDir.z);
         // calculate cube size
-        int cubeSize = 3 * DOWNSCALE_FACTOR;
+        // int cubeSize = 3 * DOWNSCALE_FACTOR;
         // draw cubes left, right and forward
         // Gizmos.DrawCube(antPos + leftCheck * debugDist, new Vector3(cubeSize, 0.3f, cubeSize));
         // Gizmos.DrawCube(antPos + rightCheck * debugDist, new Vector3(cubeSize, 0.3f, cubeSize));
